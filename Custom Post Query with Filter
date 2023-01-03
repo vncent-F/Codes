@@ -1,0 +1,67 @@
+<php>
+
+function custom_post_type_shortcode( $atts ) {
+    $atts = shortcode_atts( array(
+        'selected_location' => '',
+    ), $atts );
+
+    $selected_location = $atts['selected_location'];
+
+    if ( isset( $_GET['Filter'] ) && ! empty( $_GET['Filter'] ) ) {
+        $selected_location = sanitize_text_field( wp_unslash( $_GET['Filter'] ) );
+    }
+
+    $args = array(
+        'post_type' => 'houses',
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'location',
+                'field' => 'slug',
+                'terms' => $selected_location,
+            ),
+        ),
+    );
+    $query = new WP_Query( $args );
+
+    $output = '<form method="get">';
+    $output .= '<label for="location-dropdown">Filter by location:</label>';
+    $output .= '<select name="Filter" id="location-dropdown" onchange="this.form.submit()">';
+    $output .= '<option value="">All Locations</option>';
+    $terms = get_terms( array(
+        'taxonomy' => 'location',
+        'hide_empty' => false,
+    ) );
+    foreach ( $terms as $term ) {
+        $output .= '<option value="' . esc_attr( $term->slug ) . '"';
+        if ( $selected_location == $term->slug ) {
+            $output .= ' selected';
+        }
+        $output .= '>' . esc_html( $term->name ) . '</option>';
+    }
+    $output .= '</select>';
+    $output .= '</form>';
+
+
+    wp_reset_postdata();
+
+    return $output;
+}
+add_shortcode( 'custom_post_type', 'custom_post_type_shortcode' );
+
+
+
+add_action( 'elementor/query/locationFilter', function ( $query ) {
+	$value = $_GET['Filter'];
+
+	$tax_query = array(
+		'taxonomy' => 'location',
+		'field'    => 'slug',
+		'terms'    => array($value),
+	);
+	
+	if($value != 'All' && $value)
+		$query -> set("tax_query", array($tax_query));
+
+});
+
+?>
